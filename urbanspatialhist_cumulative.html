@@ -95,13 +95,15 @@ https://developers.arcgis.com/javascript/latest/sample-code/widgets-timeslider
             "esri/views/MapView",
             "esri/layers/FeatureLayer",
             "esri/layers/VectorTileLayer",
+            "esri/renderers/ClassBreaksRenderer",
+            "esri/symbols/PictureMarkerSymbol",
             "esri/widgets/TimeSlider",
             "esri/widgets/Expand",
             "esri/widgets/Legend",
             "esri/widgets/Home",
             "esri/Basemap",
             "dojo/domReady!"
-        ], function (Map, MapView, FeatureLayer, VectorTileLayer, TimeSlider, Expand, Legend, Home, Basemap) {
+        ], function (Map, MapView, FeatureLayer, VectorTileLayer, ClassBreaksRenderer, PictureMarkerSymbol, TimeSlider, Expand, Legend, Home, Basemap) {
 
             /* TODO: Define your variables here as described. */
             // Define the center and zoom level of your map.
@@ -172,6 +174,129 @@ https://developers.arcgis.com/javascript/latest/sample-code/widgets-timeslider
                 ]
             };
 
+           
+           
+           let break0 = {
+  type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+  url: "https://user-images.githubusercontent.com/1829326/145899688-73dec5c0-b4e1-4616-9607-c0ca85150dc3.png",
+  "width": 0,
+  "height": 0,
+  "angle": 0,
+  "xoffset": 0,
+  "yoffset": 0
+};
+
+let break1 = {
+  type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+  url: "https://user-images.githubusercontent.com/1829326/145899688-73dec5c0-b4e1-4616-9607-c0ca85150dc3.png",
+  "width": 4,
+  "height": 10,
+  "angle": 0,
+  "xoffset": 0,
+  "yoffset": 5
+};
+
+let break2 = {
+  type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+  url: "https://user-images.githubusercontent.com/1829326/145899684-1d0ccac6-7d72-4b87-9b73-2c6a9989cb7a.png",
+  "width": 4,
+  "height": 20,
+  "angle": 0,
+  "xoffset": 0,
+  "yoffset": 10
+};
+
+let break3 = {
+  type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+  url: "https://user-images.githubusercontent.com/1829326/145899686-69bcb780-30ef-4cd8-8c29-8defc2962fff.png",
+  "width": 4,
+  "height": 30,
+  "angle": 0,
+  "xoffset": 0,
+  "yoffset": 15
+};
+
+let break4 = {
+  type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+  url: "https://user-images.githubusercontent.com/1829326/145899685-c2034df9-0635-4a5c-a678-0c21f9fc9ba7.png",
+  "width": 4,
+  "height": 40,
+  "angle": 0,
+  "xoffset": 0,
+  "yoffset": 20
+};
+
+let break5 = {
+  type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+  url: "https://user-images.githubusercontent.com/1829326/145899684-1d0ccac6-7d72-4b87-9b73-2c6a9989cb7a.png",
+  "width": 4,
+  "height": 50,
+  "angle": 0,
+  "xoffset": 0,
+  "yoffset": 25
+};
+
+let break6 = {
+  type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+  url: "https://user-images.githubusercontent.com/1829326/145899682-e1947b30-22f5-41ce-8f68-4f4a404d9bcd.png",
+  "width": 4,
+  "height": 60,
+  "angle": 0,
+  "xoffset": 0,
+  "yoffset": 30
+};
+
+
+let renderer = new ClassBreaksRenderer({
+  type: "class-breaks",
+  // attribute of interest - Earthquake magnitude
+  field: "pop",
+  classBreakInfos: [
+    {
+      minValue: 0,
+      maxValue: 0,
+      symbol: break0,
+      label: "0" // label for symbol in legend
+    },
+    {
+      minValue: 1,
+      maxValue: 1199999,
+      symbol: break1,
+      label: "0 – 1.2M" // label for symbol in legend
+    },
+    {
+      minValue: 1200000,
+      maxValue: 9999999,
+      symbol: break2,
+      label: "1.2M – 10M" // label for symbol in legend
+    },
+    {
+      minValue: 10000000,
+      maxValue: 12999999,
+      symbol: break3,
+      label: "10M – 13M" // label for symbol in legend
+    },
+    {
+      minValue: 13000000,
+      maxValue: 15999999,
+      symbol: break4,
+      label: "13M – 16M" // label for symbol in legend
+    },
+    {
+      minValue: 16000000,
+      maxValue: 19999999,
+      symbol: break5,
+      label: "16M - 20M" // label for symbol in legend
+    },
+    {
+      minValue: 20000000,
+      maxValue: 20000000,
+      symbol: break6,
+      label: "over 20M" // label for symbol in legend
+    },
+});
+
+
             /* If your data layer(s) include any extra attributions to be added to the footer of the map,
              list them here. Otherwise delete this line.*/
             let additionalAttribution = ", SEDAC"
@@ -185,7 +310,7 @@ https://developers.arcgis.com/javascript/latest/sample-code/widgets-timeslider
 
             const map = new Map({});
 
-            let layer = new FeatureLayer({url: layerURL, popupTemplate: template});
+            let layer = new FeatureLayer({url: layerURL, popupTemplate: template, renderer: renderer});
             let vectormap = new VectorTileLayer({url: urbanBlueBare });
             map.add(vectormap);
             map.add(layer);
