@@ -10,8 +10,8 @@ https://developers.arcgis.com/javascript/latest/sample-code/widgets-timeslider
     <meta name="viewport"
           content="initial-scale=1,maximum-scale=1,user-scalable=no"/>
     <title>Historical TimeSlider Example</title>
-    <link rel="stylesheet" href="https://js.arcgis.com/4.21/esri/themes/light/main.css">
-    <script src="https://js.arcgis.com/4.21/"></script>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.22/esri/themes/light/main.css">
+    <script src="https://js.arcgis.com/4.22/"></script>
 
     <style>
         html,
@@ -309,7 +309,7 @@ let renderer = new ClassBreaksRenderer({
 
             const map = new Map({});
 
-            let layer = new FeatureLayer({url: layerURL, popupTemplate: template});
+            let layer = new FeatureLayer({url: layerURL, popupTemplate: template, renderer:renderer});
             let vectormap = new VectorTileLayer({url: urbanBlueBare });
             map.add(vectormap);
             map.add(layer);
