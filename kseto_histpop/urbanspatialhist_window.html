@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<!-- Mike Slattery, Yale School of the Environment Nov 2021, 
+   credit to work by Abbey Roelofs, University of Michigan July 2021
+Based on Esri Time Slider widget sample code found here:
+https://developers.arcgis.com/javascript/latest/sample-code/widgets-timeslider
+-->
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport"
+          content="initial-scale=1,maximum-scale=1,user-scalable=no"/>
+    <title>Historical TimeSlider Example</title>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.21/esri/themes/light/main.css">
+    <script src="https://js.arcgis.com/4.21/"></script>
+
+    <style>
+        html,
+        body,
+        #viewDiv {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        #timeSlider {
+            position: absolute;
+            left: 5%;
+            right: 5%;
+            bottom: 20px;
+        }
+
+        #titleDiv {
+            padding: 10px;
+            font-weight: 36;
+            text-align: center;
+        }
+        #citationDiv {
+            padding: 10px;
+            max-width: 320px;
+            font-size: smaller;
+        }
+        .esri-slider__tick.yse-labelled-tick {
+            background: #00356bcc;
+            height: 8px;
+        }
+
+        /* tight [1,2,4,6,8,10] min 954 max 1200 */
+        /* slack [1,3,5,7] min 1201 max 1240 */
+
+
+        @media (max-width: 954px){
+          .esri-time-slider__time-extent-date, .esri-time-slider__time-extent-separator
+        {
+        display: inline-flex
+        }}
+        @media (min-width: 954px) and  (max-width: 1200px){
+          .esri-slider__ticks div:nth-of-type(2) .esri-slider__tick-label.yse-tick-label,
+          .esri-slider__ticks div:nth-of-type(3) .esri-slider__tick-label.yse-tick-label,
+          .esri-slider__ticks div:nth-of-type(5) .esri-slider__tick-label.yse-tick-label,
+          .esri-slider__ticks div:nth-of-type(7) .esri-slider__tick-label.yse-tick-label,
+          .esri-slider__ticks div:nth-of-type(9) .esri-slider__tick-label.yse-tick-label,
+          .esri-slider__ticks div:nth-of-type(11) .esri-slider__tick-label.yse-tick-label
+          {
+            display: none;
+          }
+        }
+
+        @media (max-width: 758px){
+          .esri-slider__ticks div:nth-of-type(2) .esri-slider__tick-label.yse-tick-label,
+          .esri-slider__ticks div:nth-of-type(3) .esri-slider__tick-label.yse-tick-label,
+          .esri-slider__ticks div:nth-of-type(5) .esri-slider__tick-label.yse-tick-label,
+          .esri-slider__ticks div:nth-of-type(7) .esri-slider__tick-label.yse-tick-label,
+          .esri-slider__ticks div:nth-of-type(9) .esri-slider__tick-label.yse-tick-label,
+          .esri-slider__ticks div:nth-of-type(11) .esri-slider__tick-label.yse-tick-label
+          {
+            display: none;
+          }
+        }
+
+        @media (min-width: 1201px) and  (max-width: 1240px){
+          .esri-slider__ticks div:nth-of-type(2) .esri-slider__tick-label.yse-tick-label,
+          .esri-slider__ticks div:nth-of-type(4) .esri-slider__tick-label.yse-tick-label,
+          .esri-slider__ticks div:nth-of-type(6) .esri-slider__tick-label.yse-tick-label,
+          .esri-slider__ticks div:nth-of-type(8) .esri-slider__tick-label.yse-tick-label
+          {
+            display: none;
+          }
+        }
+      
+    </style>
+    <script>
+        require([
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/layers/FeatureLayer",
+            "esri/layers/VectorTileLayer",
+            "esri/widgets/TimeSlider",
+            "esri/widgets/Expand",
+            "esri/widgets/Legend",
+            "esri/widgets/Home",
+            "esri/Basemap",
+            "dojo/domReady!"
+        ], function (Map, MapView, FeatureLayer, VectorTileLayer, TimeSlider, Expand, Legend, Home, Basemap) {
+
+            /* TODO: Define your variables here as described. */
+            // Define the center and zoom level of your map.
+            const mapCtr = [34.034453,-6.575684];
+            const mapZoom = 1;
+            // The field/column in the feature layer that contains the scaled start date (if using a date range) or
+            // the scaled date (if using a single date field).
+            const scaledDateField1 = "ScaledEarliestDate";
+            // The field/column in the feature layer that contains the scaled end date, if using a date range.
+            // If using a single date field, ignore this.
+            const scaledDateField2 = "ScaledLatestDate";
+            // The url of the feature layer on ArcGIS Online
+            const layerURL = "https://services1.arcgis.com/7uJv7I3kgh2y7Pe0/arcgis/rest/services/urbanspatial_hist_urban_pop_3700bc_ad2000_shiftedtable/FeatureServer"
+            // basemap is VectorTile_1956
+            // https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer
+            // https://tiles.arcgis.com/tiles/nGt4QxSblgDfeJn9/arcgis/rest/services/EqualEarthBasemap/VectorTileServer
+            //const urbanBlueBare = "https://www.arcgis.com/sharing/rest/content/items/d42717250096415083ecf747cf2a1f1c/resources/styles/root.json"
+            const urbanBlueBare = "https://yalemaps.maps.arcgis.com/sharing/rest/content/items/ed830ba0b136462597a012dbcd354099/resources/styles/root.json"
+            // Copy the scaleFactor and offset values from the python notebook here.
+
+
+            // we aren't scaling the data to ask 1000 years to have 1 year representation on the slider, we only shifting the dates
+            const scaleFactor = 1;
+            // we are offsettng by 4700 years to allow all the BCE years to use the positive-only slider
+            const offset = 4700;
+
+            /* This array defines where the tick marks will be on the time slider.
+            The sample data goes from 497 BCE to 790 CE, so the tick marks here start at -500 and end at 800, with
+            some spaced in between as well.
+             Note that these may not come out exactly as intended due to the loss of date resolution mentioned
+             in the notebook file--it might take some experimentation or additional calculation with the scaled
+             range to get these exactly where you want them. */
+            const tickLocs = [-3700, -3130, -2560, -1990, -1421, -850, -280, 0, 289, 860, 1429, 2000];
+           /* Update the following function to define how your dates should be displayed. The return value (dispYear)
+            should be the string that will be displayed for a given input date value.
+            In the example code shown below, years below zero will be displayed as '#### BCE', while years 0 or higher
+            will be displayed as '#### CE'.
+            (Note that this is doing the reverse of the scaling function
+            in the python notebook to arrive back at the original year.)*/
+            function formatYearString(displayYear) {
+                // Note that this returns the display string, not a date object.
+                if (displayYear < 0) {
+                    displayYear = -displayYear.toString() + " BCE";
+                } else if (displayYear == 0){
+                    displayYear = displayYear.toString();
+                } else {
+                    displayYear = displayYear.toString() + " CE";
+                }
+                return displayYear;
+            }
+
+            // Define a popup template for the layer.
+            const template = {
+                title: "{City} ({Country})",
+                content: [
+                    {
+                        type: "fields",
+                        fieldInfos: [
+                            {
+                                fieldName: "pop",
+                                label: "Population"
+                            },
+                            {
+                                fieldName: "year",
+                                label: "Year"
+                            }
+                        ]
+                    }
+                ]
+            };
+
+            let break0 = {
+  type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+  url: "https://slattery.github.io/kseto_histpop/assets/img/1_bupu_034e7b.png",
+  "width": 0,
+  "height": 0,
+  "angle": 0,
+  "xoffset": 0,
+  "yoffset": 0
+};
+
+let break1 = {
+  type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+  url: "https://slattery.github.io/kseto_histpop/assets/img/1_bupu_034e7b.png",
+  "width": 4,
+  "height": 10,
+  "angle": 0,
+  "xoffset": 0,
+  "yoffset": 5
+};
+
+let break2 = {
+  type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+  url: "https://slattery.github.io/kseto_histpop/assets/img/2_bupu_0570b0.png",
+  "width": 4,
+  "height": 20,
+  "angle": 0,
+  "xoffset": 0,
+  "yoffset": 10
+};
+
+let break3 = {
+  type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+  url: "https://slattery.github.io/kseto_histpop/assets/img/3_bupu_3690c0.png",
+  "width": 4,
+  "height": 30,
+  "angle": 0,
+  "xoffset": 0,
+  "yoffset": 15
+};
+
+let break4 = {
+  type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+  url: "https://slattery.github.io/kseto_histpop/assets/img/4_bupu_74a9cf.png",
+  "width": 4,
+  "height": 40,
+  "angle": 0,
+  "xoffset": 0,
+  "yoffset": 20
+};
+
+let break5 = {
+  type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+  url: "https://slattery.github.io/kseto_histpop/assets/img/5_bupu_a6bddb.png",
+  "width": 4,
+  "height": 50,
+  "angle": 0,
+  "xoffset": 0,
+  "yoffset": 25
+};
+
+let break6 = {
+  type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+  url: "https://slattery.github.io/kseto_histpop/assets/img/6_bupu_d0d1e6.png",
+  "width": 4,
+  "height": 60,
+  "angle": 0,
+  "xoffset": 0,
+  "yoffset": 30
+};
+
+
+let renderer = new ClassBreaksRenderer({
+  type: "class-breaks",
+  // attribute of interest - Earthquake magnitude
+  field: "pop",
+  classBreakInfos: [
+    {
+      minValue: 0,
+      maxValue: 0,
+      symbol: break0,
+      label: "0" // label for symbol in legend
+    },
+    {
+      minValue: 1,
+      maxValue: 1199999,
+      symbol: break1,
+      label: "0 – 1.2M" // label for symbol in legend
+    },
+    {
+      minValue: 1200000,
+      maxValue: 9999999,
+      symbol: break2,
+      label: "1.2M – 10M" // label for symbol in legend
+    },
+    {
+      minValue: 10000000,
+      maxValue: 12999999,
+      symbol: break3,
+      label: "10M – 13M" // label for symbol in legend
+    },
+    {
+      minValue: 13000000,
+      maxValue: 15999999,
+      symbol: break4,
+      label: "13M – 16M" // label for symbol in legend
+    },
+    {
+      minValue: 16000000,
+      maxValue: 19999999,
+      symbol: break5,
+      label: "16M - 20M" // label for symbol in legend
+    },
+    {
+      minValue: 20000000,
+      maxValue: 20000000,
+      symbol: break6,
+      label: "over 20M" // label for symbol in legend
+    }
+  ]
+});
+
+            /* If your data layer(s) include any extra attributions to be added to the footer of the map,
+             list them here. Otherwise delete this line.*/
+            let additionalAttribution = ", SEDAC"
+
+            /* This is a very basic web map. If that's what you're after, no changes after this point
+            * should be necessary, other than changing the title in the fourth-to-last line of code in this file.
+            *
+            * If you want to further customize the map, do so below. */
+
+
+
+            const map = new Map({});
+
+            let layer = new FeatureLayer({url: layerURL, popupTemplate: template});
+            let vectormap = new VectorTileLayer({url: urbanBlueBare });
+            map.add(vectormap);
+            map.add(layer);
+              
+
+            const view = new MapView({
+                map: map,
+                container: "viewDiv",
+                zoom: mapZoom,
+                center: mapCtr
+            });
+
+            let homeBtn = new Home({
+                view: view
+            });
+
+
+            // Calculate the tick locations relative to the scaled dates
+            let scaledTickLocs = [];
+            tickLocs.forEach(tick => {
+                // The console.log statements below can be uncommented to help in debugging the calculation.
+                console.log(tick);
+                let scaledTick = new Date(Date.UTC(tick * scaleFactor + offset, 0, 1));
+                scaledTickLocs.push(scaledTick);
+                //console.log(scaledTick);
+            });
+            function scaleDate(dateIn) {
+                // Note that this returns the display string, not a date object.
+                let dispDate = new Date(dateIn);
+                let dispYear = dispDate.getUTCFullYear();
+                dispYear = Math.round((dispYear - offset) / scaleFactor);
+                dispYear = formatYearString(dispYear);
+                return dispYear;
+            }
+            // time slider widget initialization
+            const uniqyears = [1000,1200,1400,1700,1900,2200,2300,2400,2450,2500,2600,2700,2800,2900,3000,3100,3200,3300,3340,3400,3500,3600,3700,3800,3900,3988,4000,4050,4100,4200,4270,4300,4400,4500,4600,4701,4800,4900,4960,5000,5061,5100,5200,5202,5228,5250,5291,5300,5320,5321,5322,5327,5330,5337,5340,5370,5371,5392,5393,5396,5400,5405,5409,5411,5415,5417,5430,5440,5441,5442,5450,5451,5452,5454,5455,5457,5463,5465,5482,5484,5500,5504,5505,5508,5510,5512,5521,5527,5530,5533,5536,5538,5550,5558,5560,5574,5575,5581,5584,5586,5589,5600,5603,5604,5606,5611,5615,5627,5628,5630,5632,5636,5644,5647,5650,5658,5662,5665,5668,5669,5670,5672,5675,5678,5680,5690,5691,5700,5701,5709,5715,5716,5718,5734,5742,5746,5750,5751,5752,5760,5761,5767,5769,5770,5771,5774,5776,5777,5780,5783,5786,5787,5790,5799,5800,5801,5802,5803,5804,5806,5816,5818,5821,5823,5824,5825,5826,5828,5830,5841,5843,5844,5847,5849,5850,5851,5860,5861,5862,5863,5864,5869,5870,5871,5874,5875,5880,5884,5885,5887,5889,5892,5893,5894,5897,5898,5899,5900,5901,5903,5904,5905,5906,5908,5909,5912,5913,5915,5916,5917,5919,5920,5921,5923,5925,5927,5928,5929,5930,5932,5936,5937,5938,5939,5941,5942,5943,5946,5947,5948,5949,5950,5951,5953,5955,5958,5959,5960,5961,5963,5964,5965,5968,5970,5971,5972,5973,5974,5975,5977,5978,5979,5980,5981,5982,5988,5990,5992,5994,5996,5997,5998,6000,6002,6003,6004,6007,6009,6010,6011,6012,6013,6014,6016,6018,6020,6024,6025,6026,6027,6028,6029,6030,6031,6033,6035,6037,6040,6041,6043,6044,6045,6046,6047,6048,6050,6053,6054,6055,6057,6058,6059,6060,6061,6063,6064,6066,6067,6068,6070,6071,6074,6075,6076,6077,6078,6079,6080,6081,6082,6083,6084,6085,6087,6088,6091,6092,6093,6095,6096,6097,6098,6099,6100,6101,6102,6103,6104,6105,6107,6108,6109,6110,6112,6114,6115,6116,6117,6118,6119,6122,6123,6125,6127,6128,6130,6131,6132,6133,6135,6137,6138,6140,6141,6142,6143,6146,6147,6149,6150,6151,6152,6153,6155,6156,6158,6160,6161,6163,6166,6167,6168,6170,6171,6173,6174,6175,6176,6177,6179,6180,6182,6183,6184,6186,6187,6188,6189,6191,6192,6193,6194,6195,6196,6197,6198,6199,6200,6201,6202,6203,6205,6206,6208,6209,6210,6211,6212,6213,6214,6215,6216,6217,6218,6219,6220,6221,6222,6223,6224,6225,6226,6227,6228,6229,6230,6232,6233,6236,6237,6238,6239,6240,6241,6242,6243,6244,6245,6246,6247,6248,6249,6250,6251,6252,6253,6254,6255,6256,6257,6259,6260,6261,6262,6263,6264,6265,6268,6269,6270,6271,6272,6273,6274,6275,6276,6277,6278,6279,6280,6281,6282,6283,6284,6285,6286,6287,6288,6289,6290,6291,6292,6293,6294,6295,6296,6297,6298,6299,6300,6301,6302,6303,6304,6305,6306,6307,6308,6309,6310,6311,6312,6313,6314,6315,6316,6317,6318,6319,6320,6321,6322,6323,6324,6325,6326,6327,6328,6329,6330,6331,6332,6333,6334,6335,6336,6337,6338,6339,6340,6341,6342,6343,6344,6345,6346,6347,6348,6349,6350,6351,6352,6353,6354,6355,6356,6357,6358,6359,6360,6361,6362,6363,6364,6365,6366,6367,6368,6369,6370,6371,6372,6373,6374,6375,6376,6377,6378,6379,6380,6381,6382,6383,6384,6385,6386,6387,6388,6389,6390,6392,6393,6394,6395,6396,6397,6398,6399,6400,6401,6402,6403,6405,6406,6407,6408,6409,6410,6411,6412,6413,6414,6415,6416,6417,6418,6419,6420,6421,6422,6423,6424,6425,6426,6427,6428,6429,6430,6431,6432,6434,6435,6436,6437,6438,6439,6440,6441,6442,6443,6444,6445,6446,6447,6448,6449,6450,6451,6452,6453,6454,6455,6456,6457,6458,6459,6460,6461,6462,6463,6464,6465,6466,6467,6468,6469,6470,6471,6472,6473,6474,6475,6476,6477,6478,6479,6480,6481,6482,6483,6484,6485,6486,6487,6488,6489,6490,6491,6492,6493,6494,6495,6496,6497,6498,6499,6500,6501,6502,6503,6504,6505,6506,6507,6508,6509,6510,6511,6512,6513,6514,6515,6516,6517,6518,6519,6520,6521,6522,6523,6524,6525,6526,6527,6528,6529,6530,6531,6532,6533,6534,6535,6536,6537,6538,6539,6540,6541,6542,6543,6544,6545,6546,6547,6548,6549,6550,6551,6552,6553,6554,6555,6556,6557,6558,6559,6560,6561,6562,6563,6564,6565,6566,6567,6568,6569,6570,6571,6572,6573,6574,6575,6576,6577,6578,6579,6580,6581,6582,6583,6584,6585,6586,6587,6588,6589,6590,6591,6592,6593,6594,6595,6597,6598,6600,6601,6605,6606,6607,6608,6610,6611,6612,6614,6620,6622,6625,6628,6630,6631,6633,6635,6636,6638,6640,6641,6643,6644,6647,6648,6650,6653,6670,6675,6700];
+            const uniqticks = [];
+            uniqyears.forEach(tick => {
+                // The console.log statements below can be uncommented to help in debugging the calculation.
+                //console.log(tick);
+                let scaledTick = new Date(Date.UTC(tick, 0, 1)).getTime();
+                uniqticks.push(scaledTick);
+                //console.log(scaledTick);
+            })
+     
+            const timeSlider = new TimeSlider({
+                container: "timeSlider",
+                mode: "time-window",
+                //layout: "compact", //defaults to auto
+                view: view,
+                timeVisible: false, // don't show the time stamps on the timeslider
+                loop: true,
+                playRate: 500,
+                // This section formats the min year, max year, and extent displays
+                // The function is called for each of the elements (min, max, extents), with the 'type' value set to
+                // one of these
+                labelFormatFunction: (value, type, element, layout) => {
+                    // See help here: https://developers.arcgis.com/javascript/latest/api-reference/esri-widgets-TimeSlider.html#labelFormatFunction
+                    if (!value) {
+                        // console.log("no value found for " + type);
+                        return
+                    }
+                     console.log(type);
+                     console.log(value);
+                    switch (type) {
+                        case "min":
+                        case "max":
+                            let dispYear = scaleDate(value);
+                            element.innerText = dispYear;
+                            // Note that you can also include something like the following to do custom formatting
+                            //element.setAttribute("style", "font-family: 'Orbitron', sans-serif; font-size: 16px; color: magenta;");
+                            break;
+                        case "extent":
+                           //HARDCODE  dispYear1 IF MODE = "cumulative-from-start" ELSE value[0]
+                            let dispYear1 = scaleDate(new Date(Date.UTC(1000, 0, 1)));
+                            let dispYear2 = scaleDate(value[1]);
+                            // console.log(dispYear1 + " - " + dispYear2);
+                            //element.innerText = dispYear1 + " - " + dispYear2;
+                            
+                            element.innerHTML ='<div class="esri-time-slider__time-extent-group"><div class="esri-time-slider__time-extent-date">'+dispYear1+'</div></div><div class="esri-time-slider__time-extent-group"><div class="esri-time-slider__time-extent-separator">–</div></div><div class="esri-time-slider__time-extent-group"><div class="esri-time-slider__time-extent-date">'+ dispYear2 +'</div></div>';
+                            break;
+                    }
+                  
+                },
+                tickConfigs: [{
+                    // This values list could be generated by a function insted of hard-coded here
+                    // Include a section at the top where the user could enter the dates they want the ticks at (in
+                    // un-scaled units).
+                    mode: "position",
+                    values: scaledTickLocs.map((date) => date.getTime()),
+                    labelsVisible: true,
+                    labelFormatFunction: (value) => {
+                        // This section formats the dates displayed for the tickmarks (as defined above)
+                        // The console.log statements may be useful in debugging the display dates.
+                        //console.log(new Date(Date.UTC(value).getUTCFullYear()));
+                        let dispYear = scaleDate(value);
+                        //console.log(dispYear);
+                        return `${dispYear}`;
+                    },
+                    // tight [1,2,4,6,8,10] min 954 max 1200
+                    // slack [1,3,5,7] min 1201 max 1240
+                    tickCreatedFunction: (value, tickElement, labelElement) => {
+                        tickElement.classList.add("yse-labelled-tick");
+                        labelElement.classList.add("yse-tick-label");
+                    }
+                }, {
+                  mode: "position", // ticks for the years with data no labels
+                  values: uniqticks,
+                  labelsVisible: false
+                }],
+            });
+
+            timeSlider.watch("timeExtent", (timeExtent) => {
+                console.log("Time extent now starts at", timeExtent.start, "and finishes at:", timeExtent.end);
+            }); 
+
+            // add the UI for a title
+            view.ui.add("titleDiv", "top-right");
+            //view.ui.add("citationDiv", "bottom-right");
+            view.ui.add(homeBtn, "top-left");
+            view.whenLayerView(layer).then(function (lv) {
+                // Round up the full time extent to full hour
+                //timeSlider.fullTimeExtent = layer.timeInfo.fullTimeExtent.expandTo("hours");
+                console.log(layer.timeInfo.fullTimeExtent.start)
+                timeSlider.fullTimeExtent = { start:  new Date(Date.UTC(1000, 0, 1)), end:  new Date(Date.UTC(6700, 11, 31)) }
+                timeSlider.stops = {
+                    interval: {
+                        value: 100,
+                        unit: "years"
+                    }
+                };
+
+
+                // This is the only way I could find to update the existing attribution list.
+                if(additionalAttribution) {
+                    let attr = document.getElementsByClassName("esri-attribution__sources")[0]
+                    attr.innerText += additionalAttribution;
+                }
+            });
+            const legend = new Legend({
+                view: view
+            });
+            
+            const legendExpand = new Expand({
+                expandIconClass: "esri-icon-legend",
+                expandTooltip: "Legend",
+                view: view,
+                content: legend,
+                expanded: false
+            });
+            view.ui.add(legendExpand, "top-left");
+        });
+    </script>
+</head>
+
+<body>
+<div id="viewDiv"></div>
+<div id="timeSlider"></div>
+<div id="titleDiv" class="esri-widget">
+    <div id="titleText">Historical Urban Population: 3700 BC - AD 2000</div>
+</div>
+<div id="citationDiv" class="esri-widget">
+  <div id="citationText">Based on Reba, M. L., F. Reitsma, and K. C. Seto. 2018. Historical Urban Population: 3700 BC - AD 2000. Palisades, NY: NASA Socioeconomic Data and Applications Center (SEDAC). https://doi.org/10.7927/H4ZG6QBX. Accessed 01 Nov 2021<br />
+    Reba, M. L., F. Reitsma, and K. C. Seto. 2016. Spatializing 6,000 Years of Global Urbanization from 3700 BC to AD 2000. Scientific Data 3: 160034. https://doi.org/10.1038/sdata.2016.34</div>
+</div>
+</body>
+</html>
