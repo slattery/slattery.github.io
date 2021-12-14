@@ -190,7 +190,7 @@ let break1 = {
   type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
   url: "https://slattery.github.io/kseto_histpop/assets/img/100_bupu_034e7b.png",
   "width": 2,
-  "height": 14,
+  "height": 10,
   "angle": 0,
   "xoffset": 0,
   "yoffset": 5
@@ -259,33 +259,33 @@ let renderer = new ClassBreaksRenderer({
     },
     {
       minValue: 1,
-      maxValue: 1199999,
+      maxValue: 39999,
       symbol: break1,
-      label: "0 – 1.2M" // label for symbol in legend
+      label: "0 – 40K" // label for symbol in legend
     },
     {
-      minValue: 1200000,
-      maxValue: 9999999,
+      minValue: 40000,
+      maxValue: 99999,
       symbol: break2,
-      label: "1.2M – 10M" // label for symbol in legend
+      label: "40K – 100K" // label for symbol in legend
     },
     {
-      minValue: 10000000,
-      maxValue: 12999999,
+      minValue: 100000,
+      maxValue: 999999,
       symbol: break3,
-      label: "10M – 13M" // label for symbol in legend
+      label: "100K – 1M" // label for symbol in legend
     },
     {
-      minValue: 13000000,
-      maxValue: 15999999,
+      minValue: 1000000,
+      maxValue: 3999999,
       symbol: break4,
-      label: "13M – 16M" // label for symbol in legend
+      label: "1M – 4M" // label for symbol in legend
     },
     {
-      minValue: 16000000,
+      minValue: 4000000,
       maxValue: 19999999,
       symbol: break5,
-      label: "16M - 20M" // label for symbol in legend
+      label: "4M - 20M" // label for symbol in legend
     },
     {
       minValue: 20000000,
