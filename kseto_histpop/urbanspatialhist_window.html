@@ -384,7 +384,8 @@ let renderer = new ClassBreaksRenderer({
                             break;
                         case "extent":
                            //HARDCODE  dispYear1 IF MODE = "cumulative-from-start" ELSE value[0]
-                            let dispYear1 = scaleDate(new Date(Date.UTC(1000, 0, 1)));
+                           // let dispYear1 = scaleDate(new Date(Date.UTC(1000, 0, 1)));
+                            let dispYear1 = scaleDate(value[0]);
                             let dispYear2 = scaleDate(value[1]);
                             // console.log(dispYear1 + " - " + dispYear2);
                             //element.innerText = dispYear1 + " - " + dispYear2;
