@@ -309,7 +309,7 @@ let renderer = new ClassBreaksRenderer({
 
             const map = new Map({});
 
-            let layer = new FeatureLayer({url: layerURL, popupTemplate: template, renderer:renderer});
+            let layer = new FeatureLayer({url: layerURL,  renderer:renderer});
             let vectormap = new VectorTileLayer({url: urbanBlueBare });
             map.add(vectormap);
             map.add(layer);
